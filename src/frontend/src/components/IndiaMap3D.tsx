@@ -1,6 +1,6 @@
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 const INDIA_BOUNDARY_LONLAT: [number, number][] = [
@@ -345,7 +345,13 @@ function PinMarker({
   );
 }
 
-function SceneContent({ onPinClick }: { onPinClick: (label: string) => void }) {
+function SceneContent({
+  onPinClick,
+  isMobile,
+}: {
+  onPinClick: (label: string) => void;
+  isMobile: boolean;
+}) {
   const controlsRef = useRef<any>(null);
 
   return (
@@ -379,12 +385,17 @@ function SceneContent({ onPinClick }: { onPinClick: (label: string) => void }) {
 
       <OrbitControls
         ref={controlsRef}
-        enableZoom={true}
+        enableZoom={!isMobile}
         enablePan={false}
         autoRotate={true}
         autoRotateSpeed={0.6}
         minPolarAngle={Math.PI * 0.25}
         maxPolarAngle={Math.PI * 0.75}
+        touches={
+          isMobile
+            ? { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.ROTATE }
+            : undefined
+        }
       />
     </>
   );
@@ -396,6 +407,11 @@ export default function IndiaMap3D({
   onPinClick?: (label: string) => void;
 }) {
   const [tooltip, setTooltip] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
 
   const handlePin = (label: string) => {
     setTooltip(label);
@@ -407,11 +423,11 @@ export default function IndiaMap3D({
     <div className="relative w-full h-full" style={{ minHeight: "420px" }}>
       <Canvas
         camera={{ position: [0, 0, 8], fov: 50 }}
-        style={{ background: "transparent" }}
+        style={{ background: "transparent", touchAction: "pan-y" }}
         gl={{ alpha: true, antialias: true }}
         shadows
       >
-        <SceneContent onPinClick={handlePin} />
+        <SceneContent onPinClick={handlePin} isMobile={isMobile} />
       </Canvas>
 
       {/* Legend */}
@@ -450,7 +466,9 @@ export default function IndiaMap3D({
         className="absolute bottom-4 right-4 text-xs"
         style={{ color: "oklch(0.5 0.02 232)", pointerEvents: "none" }}
       >
-        Drag to rotate · Scroll to zoom
+        {isMobile
+          ? "Two-finger rotate · Pinch to zoom"
+          : "Drag to rotate · Scroll to zoom"}
       </div>
     </div>
   );

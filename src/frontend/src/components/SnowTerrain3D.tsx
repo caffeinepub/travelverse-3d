@@ -1,7 +1,7 @@
 import { OrbitControls, useTexture } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { motion } from "motion/react";
-import { Suspense, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 const TEXTURE_PATHS = [
@@ -97,7 +97,13 @@ function CameraSetup() {
   return null;
 }
 
-function SceneContent({ texturePath }: { texturePath: string }) {
+function SceneContent({
+  texturePath,
+  isMobile,
+}: {
+  texturePath: string;
+  isMobile: boolean;
+}) {
   return (
     <>
       <CameraSetup />
@@ -121,7 +127,13 @@ function SceneContent({ texturePath }: { texturePath: string }) {
         autoRotate
         autoRotateSpeed={0.3}
         enableZoom={false}
+        enablePan={false}
         maxPolarAngle={Math.PI / 2.5}
+        touches={
+          isMobile
+            ? { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.ROTATE }
+            : undefined
+        }
       />
     </>
   );
@@ -137,6 +149,11 @@ export default function SnowTerrain3D({
   scrollToSection,
 }: SnowTerrain3DProps) {
   const [activeTexture, setActiveTexture] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
 
   return (
     <section
@@ -149,13 +166,16 @@ export default function SnowTerrain3D({
       }}
     >
       {/* 3D Canvas */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0" style={{ touchAction: "pan-y" }}>
         <Canvas
           camera={{ position: [0, 8, 18], fov: 55 }}
-          style={{ background: "#050a18" }}
+          style={{ background: "#050a18", touchAction: "pan-y" }}
           gl={{ antialias: true }}
         >
-          <SceneContent texturePath={TEXTURE_PATHS[activeTexture]} />
+          <SceneContent
+            texturePath={TEXTURE_PATHS[activeTexture]}
+            isMobile={isMobile}
+          />
         </Canvas>
       </div>
 
